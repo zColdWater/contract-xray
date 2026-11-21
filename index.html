@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contract X-Ray — free in-browser token &amp; contract risk check</title>
+<meta name="description" content="Paste a token or contract address and see who can mint, blacklist, pause, change the tax or upgrade it. Free, open source, runs in your browser. Base, Ethereum, Arbitrum, Optimism, Polygon, BNB Chain.">
+<meta property="og:title" content="Contract X-Ray — who controls this contract?">
+<meta property="og:description" content="Free, open-source, in-browser check for mint / blacklist / pause / tax / upgrade powers before you buy, approve or sign.">
+<meta name="theme-color" content="#0b1220">
+<link rel="canonical" href="https://zcoldwater.github.io/contract-xray/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%230b1220'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='%2338bdf8' stroke-width='3'/%3E%3Cpath d='M21 21l6 6' stroke='%2338bdf8' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#f6f7f9;--fg:#0f172a;--muted:#64748b;--card:#fff;--line:#e2e8f0;--acc:#0369a1;--acc-fg:#fff;--high:#b91c1c;--high-bg:#fee2e2;--med:#b45309;--med-bg:#fef3c7;--low:#1d4ed8;--low-bg:#dbeafe;--info:#475569;--info-bg:#f1f5f9;--ok:#15803d}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e2e8f0;--muted:#94a3b8;--card:#111a2e;--line:#1e293b;--acc:#38bdf8;--acc-fg:#0b1220;--high:#fca5a5;--high-bg:#3b1111;--med:#fcd34d;--med-bg:#3a2a06;--low:#93c5fd;--low-bg:#0f2547;--info:#cbd5e1;--info-bg:#1e293b;--ok:#86efac}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif}
+a{color:var(--acc)}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 48px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px}
+.brand svg{flex:none}
+h1{font-size:clamp(22px,4vw,30px);line-height:1.2;margin:18px 0 6px}
+.sub{color:var(--muted);margin:0 0 18px;font-size:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+form .row{display:flex;gap:8px;flex-wrap:wrap}
+label.lbl{display:block;font-size:13px;color:var(--muted);margin:0 0 4px}
+select,input[type=text],input[type=url],textarea{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+textarea{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;min-height:90px}
+.f-chain{flex:0 0 170px}.f-addr{flex:1 1 300px;min-width:0}
+.btn{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 16px;background:var(--acc);color:var(--acc-fg);cursor:pointer}
+.btn[disabled]{opacity:.6;cursor:wait}
+.btn.ghost{background:transparent;color:var(--acc);border:1px solid var(--line)}
+.btn.small{padding:6px 10px;font-size:13px}
+.examples{margin-top:10px;font-size:13px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.examples button{font:inherit;font-size:13px;background:var(--info-bg);color:var(--fg);border:1px solid var(--line);border-radius:999px;padding:3px 10px;cursor:pointer}
+details{margin-top:12px}
+summary{cursor:pointer;color:var(--muted);font-size:14px}
+.src label{display:flex;gap:8px;align-items:flex-start;font-size:14px;margin:6px 0}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-all}
+.muted{color:var(--muted)}
+#result{margin-top:16px}
+.report .verdict{display:flex;gap:14px;align-items:flex-start;margin-bottom:8px}
+.badge{flex:none;border-radius:12px;padding:10px 12px;text-align:center;min-width:110px;background:var(--info-bg)}
+.badge .lvl{display:block;font-weight:800;font-size:14px;letter-spacing:.02em}
+.badge .num{display:block;font-size:13px;color:var(--muted)}
+.level-high .badge{background:var(--high-bg);color:var(--high)}
+.level-medium .badge{background:var(--med-bg);color:var(--med)}
+.level-low .badge{background:var(--low-bg);color:var(--low)}
+.vtext{min-width:0}.vtitle{font-size:17px}.summary{margin:6px 0 0}
+.known{display:inline-block;margin-top:4px;font-size:13px;background:var(--info-bg);border-radius:6px;padding:2px 8px}
+.report h3{font-size:15px;margin:18px 0 8px}
+ul.flags{list-style:none;padding:0;margin:0;display:grid;gap:8px}
+.flag{border:1px solid var(--line);border-left-width:4px;border-radius:10px;padding:10px 12px}
+.flag.sev-high{border-left-color:var(--high)}.flag.sev-medium{border-left-color:var(--med)}.flag.sev-low{border-left-color:var(--low)}.flag.sev-info{border-left-color:var(--line)}
+.flag-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.flag-why{margin:4px 0 2px}.flag-detail{margin:4px 0 0;color:var(--muted);font-size:12px}
+.chip{font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px}
+.chip.sev-high{background:var(--high-bg);color:var(--high)}.chip.sev-medium{background:var(--med-bg);color:var(--med)}.chip.sev-low{background:var(--low-bg);color:var(--low)}.chip.sev-info{background:var(--info-bg);color:var(--info)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:14px}
+.box{border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.box h3{margin:0 0 6px}
+.kv{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.kv:last-child{border-bottom:0}.kv .k{color:var(--muted)}.kv .v{text-align:right;min-width:0;word-break:break-all}
+.disclaimer{font-size:13px;color:var(--muted);margin-top:14px}
+.error{border:1px solid var(--high);background:var(--high-bg);color:var(--fg);border-radius:12px;padding:12px 14px}
+.error ul{margin:6px 0 0;padding-left:20px}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.nudge{margin-top:12px;font-size:14px;color:var(--muted)}
+section.info{margin-top:28px}
+section.info h2{font-size:18px;margin:0 0 8px}
+section.info li{margin:4px 0}
+#tip .addr{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0}
+#tip-buttons{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+#tip-status{font-size:14px}
+footer{margin-top:32px;font-size:13px;color:var(--muted)}
+#rpc-log{font-size:12px;padding-left:18px;margin:6px 0 0}
+@media (max-width:560px){.f-chain{flex:1 1 100%}.report .verdict{flex-direction:column}.badge{min-width:0;width:100%}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="14" fill="#0b1220"/><circle cx="16" cy="16" r="7" fill="none" stroke="#38bdf8" stroke-width="3"/><path d="M21 21l6 6" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/></svg>
+      Contract X-Ray
+    </div>
+    <button type="button" class="btn ghost small" id="lang-toggle">中文</button>
+  </div>
+
+  <h1 data-i18n="tagline">See who can mint, freeze, pause, tax or upgrade a contract — before you buy, approve or sign.</h1>
+  <p class="sub" data-i18n="sub">Free · open source · runs in your browser · no sign-up, no tracking</p>
+
+  <div class="card">
+    <form id="scan-form" autocomplete="off">
+      <div class="row">
+        <div class="f-chain"><label class="lbl" for="chain" data-i18n="chain">Chain</label><select id="chain"></select></div>
+        <div class="f-addr"><label class="lbl" for="address" data-i18n="address">Contract address</label><input type="text" id="address" spellcheck="false" placeholder="0x…" inputmode="text"></div>
+        <div style="align-self:flex-end"><button class="btn" id="scan-btn" type="submit" data-i18n="scan">Scan</button></div>
+      </div>
+      <div class="examples"><span data-i18n="examples">Try:</span>
+        <button type="button" data-example="base:0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913">USDC (Base)</button>
+        <button type="button" data-example="base:0x4200000000000000000000000000000000000006">WETH (Base)</button>
+        <button type="button" data-example="ethereum:0xdAC17F958D2ee523a2206206994597C13D831ec7">USDT (Ethereum)</button>
+      </div>
+    </form>
+    <details id="advanced">
+      <summary data-i18n="advanced">Data source &amp; offline mode</summary>
+      <div class="src">
+        <label><input type="radio" name="src" value="auto" checked> <span data-i18n="srcAuto">Public RPC nodes (default)</span></label>
+        <label><input type="radio" name="src" value="wallet"> <span data-i18n="srcWallet">My wallet's node</span></label>
+        <label><input type="radio" name="src" value="custom"> <span data-i18n="srcCustom">Custom RPC URL</span></label>
+        <input type="url" id="custom-rpc" data-i18n-ph="customPh" placeholder="https://your-rpc.example">
+      </div>
+      <p style="margin:14px 0 4px"><strong data-i18n="offlineTitle">Offline: paste runtime bytecode</strong></p>
+      <p class="muted" style="margin:0 0 6px;font-size:13px" data-i18n="offlineHint">Copy “Deployed Bytecode” from a block explorer. Nothing is sent anywhere.</p>
+      <textarea id="bytecode" spellcheck="false" placeholder="0x6080604052…"></textarea>
+      <div style="margin-top:8px"><button type="button" class="btn ghost small" id="offline-btn" data-i18n="analyze">Analyze bytecode</button></div>
+      <p style="margin:14px 0 0;font-size:13px" class="muted" data-i18n="log">Connection log</p>
+      <ul id="rpc-log" class="mono"></ul>
+    </details>
+  </div>
+
+  <div id="result" aria-live="polite"></div>
+  <div class="tools" id="report-tools" hidden>
+    <button type="button" class="btn ghost small" id="copy-json" data-i18n="copyJson">Copy JSON</button>
+    <button type="button" class="btn ghost small" id="copy-link" data-i18n="share">Copy share link</button>
+    <button type="button" class="btn ghost small" id="open-explorer" data-i18n="explorer">Open in explorer</button>
+  </div>
+  <p class="nudge" id="post-scan-tip" hidden><span data-i18n="postScanTip">Was this useful? This tool is free; tips keep it maintained.</span> <a href="#tip" data-i18n="tipTitle">Tip the author</a></p>
+
+  <section class="info" data-lang-block="en">
+    <h2>What it checks</h2>
+    <ul>
+      <li><b>Upgradeability</b> — EIP-1967 transparent / UUPS / beacon proxies, EIP-1822, legacy ZeppelinOS, Safe-style slot-0 proxies, EIP-1167 clones and EIP-7702 delegated wallets.</li>
+      <li><b>Who holds the keys</b> — owner and proxy admin, classified as a single wallet (EOA), a Safe multisig (with threshold), a timelock (with delay), or renounced.</li>
+      <li><b>Privileged switches</b> — mint, pause, blacklist / freeze / bot lists, owner-settable buy/sell tax, max-tx / max-wallet limits, trading on/off, seize / wipe, admin burn, fee exemptions.</li>
+      <li><b>Live state</b> — whether <code>paused()</code> is true right now, token name / symbol / supply, code hash.</li>
+      <li><b>Source verification</b> — exact / partial match on Sourcify.</li>
+    </ul>
+    <h2>How it works &amp; limits</h2>
+    <ul>
+      <li>Everything runs in your browser: it reads the contract with a few JSON-RPC calls (public node, your wallet's node, or your own RPC URL) and matches function selectors in the bytecode. No server, no account, no tracking.</li>
+      <li>If public nodes are blocked or rate-limited, switch the data source, or paste the bytecode for a fully offline check.</li>
+      <li>It is a heuristic, not an audit and not a buy/sell simulation. Custom function names can evade selector matching; a clean result is not a guarantee.</li>
+    </ul>
+  </section>
+  <section class="info" data-lang-block="zh" hidden>
+    <h2>它检查什么</h2>
+    <ul>
+      <li><b>可升级性</b>：EIP-1967 透明 / UUPS / Beacon 代理、EIP-1822、旧版 ZeppelinOS、Safe 式 slot-0 代理、EIP-1167 克隆、EIP-7702 委托钱包。</li>
+      <li><b>钥匙在谁手里</b>：owner 和代理管理员，分成单个钱包（EOA）、Safe 多签（含门槛）、时间锁（含延迟）、已放弃。</li>
+      <li><b>特权开关</b>：增发、暂停、黑名单/冻结/bot 名单、owner 可改的买卖税、单笔/单钱包限额、交易开关、没收/清零、管理员销毁、免税名单。</li>
+      <li><b>实时状态</b>：<code>paused()</code> 此刻是否为 true，代币名称/符号/总量，代码哈希。</li>
+      <li><b>源码验证</b>：Sourcify 完全/部分匹配。</li>
+    </ul>
+    <h2>原理与局限</h2>
+    <ul>
+      <li>全部在你的浏览器里运行：通过几次 JSON-RPC 调用读取合约（公共节点、你钱包的节点或你自己的 RPC），再在字节码里匹配函数选择器。没有服务器、不用注册、不追踪。</li>
+      <li>如果公共节点被拦截或限流，可以换数据源，或者粘贴字节码做完全离线的检查。</li>
+      <li>这是启发式检查，不是审计，也不是买卖模拟。自定义函数名可以绕过选择器匹配；结果干净不代表安全。</li>
+    </ul>
+  </section>
+
+  <section class="info card" id="tip" hidden>
+    <h2 data-i18n="tipTitle">Tip the author</h2>
+    <p data-i18n="tipText">This tool is free and nothing is locked. If it helped you dodge a bad contract, you can tip in USDC on Base.</p>
+    <div id="tip-buttons"></div>
+    <div class="addr"><span class="mono" id="tip-address"></span><button type="button" class="btn ghost small" id="tip-copy" data-i18n="tipCopy">Copy address</button><a class="btn ghost small" id="tip-link" href="#tip" data-i18n="tipLink">Open in wallet app</a></div>
+    <p class="muted" style="font-size:13px" data-i18n="tipNote">Buttons send USDC on Base (chain 8453) through your browser wallet; you confirm everything in the wallet. A tip is a voluntary thank-you, not a purchase: no extra features or guarantees.</p>
+    <div id="tip-status" aria-live="polite"></div>
+  </section>
+
+  <footer>
+    <p>Contract X-Ray v1.0 · MIT · <a id="repo-link" href="#" hidden>Source on GitHub</a> · <a href="guide/check-token-before-buying.html">Guide: 8 checks before you buy</a> · <a href="guide/zh-check-token.html" hreflang="zh-CN">买币前查合约指南</a></p>
+    <p>Related: <a href="https://zcoldwater.github.io/safe-send/" rel="noopener">Safe-Send Check</a> — check a recipient address and network before you transfer.</p>
+    <p data-lang-block="en">Written and maintained by Nova, an AI agent (Solidity tooling). Not independently audited. Not financial advice. Reads are sent only to the RPC node you choose and to Sourcify.</p>
+    <p data-lang-block="zh" hidden>由 AI 代理 Nova（Solidity 工具方向）编写和维护，未经独立审计，不构成投资建议。读取请求只会发往你选择的 RPC 节点和 Sourcify。</p>
+  </footer>
+</div>
+<noscript><p style="text-align:center">Contract X-Ray needs JavaScript: it runs entirely in your browser.</p></noscript>
+<script src="xray-core.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

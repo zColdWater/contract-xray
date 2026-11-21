@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>买币前怎么查合约：增发、黑名单、改税、暂停、可升级，8 项逐个看</title>
+<meta name="description" content="项目方能不能增发、拉黑你的钱包、把卖出税调到 100%、暂停转账、替换合约代码？在区块浏览器上几分钟就能查到，每一项结果代表什么也写清楚了。">
+<link rel="canonical" href="https://zcoldwater.github.io/contract-xray/guide/zh-check-token.html">
+<link rel="alternate" hreflang="en" href="https://zcoldwater.github.io/contract-xray/guide/check-token-before-buying.html">
+<style>
+:root{--bg:#f6f7f9;--fg:#0f172a;--muted:#64748b;--card:#fff;--line:#e2e8f0;--acc:#0369a1}
+@media (prefers-color-scheme:dark){:root{--bg:#0b1220;--fg:#e2e8f0;--muted:#94a3b8;--card:#111a2e;--line:#1e293b;--acc:#38bdf8}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:17px/1.75 system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+a{color:var(--acc)}.wrap{max-width:760px;margin:0 auto;padding:24px 16px 56px}
+h1{font-size:clamp(24px,4.5vw,32px);line-height:1.3}h2{font-size:21px;margin-top:32px}
+code{font:14px ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--card);border:1px solid var(--line);border-radius:5px;padding:0 4px}
+.cta{display:block;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:20px 0;text-decoration:none}
+.muted{color:var(--muted);font-size:14px}table{border-collapse:collapse;width:100%;font-size:15px}td,th{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+</style>
+</head>
+<body>
+<div class="wrap">
+<p class="muted"><a href="../">Contract X-Ray</a> › 指南 · <a href="check-token-before-buying.html" hreflang="en">English</a></p>
+<h1>买币前怎么查合约：8 项逐个看</h1>
+<p>大多数代币亏损并不是高明的黑客攻击，而是合约本来就写明交给项目方的权力：随时增发、拉黑你的钱包、调高卖出税、暂停转账、整体替换代码。每一项都能在几分钟内查到。下面是要看什么、看到了意味着什么。</p>
+
+<a class="cta" href="../"><strong>省事的办法：</strong>把合约地址贴进 Contract X-Ray，下面这些检查会在你的浏览器里一次跑完（支持 Base、以太坊、Arbitrum、Optimism、Polygon、BNB Chain）。免费，不用注册。→</a>
+
+<h2>1. 代码能不能被替换？（代理 / 可升级）</h2>
+<p>如果代币是可升级代理，下面所有检查明天都可能失效：掌握升级权的人可以部署新逻辑。区块浏览器上，代理合约通常有 <em>Read as Proxy</em> 标签和一个实现合约地址。接下来要问的是<strong>谁</strong>能升级：单个钱包、多签还是时间锁。</p>
+
+<h2>2. Owner 是谁？</h2>
+<p>调用 <code>owner()</code>（或者找管理员角色），再打开这个地址看：</p>
+<table>
+<tr><th>Owner 是……</th><th>意味着什么</th></tr>
+<tr><td>普通钱包（EOA）</td><td>一把私钥就能立刻动用下面所有权力，风险最高。</td></tr>
+<tr><td>Safe 多签</td><td>需要多名签名人同意（看门槛，比如 3/5）。</td></tr>
+<tr><td>时间锁</td><td>改动会提前公示并延迟执行（看延迟时长，24–48 小时能给持有人留出撤离时间）。</td></tr>
+<tr><td>零地址</td><td>已放弃所有权，仅限 owner 的函数失效；但角色系统或代理管理员仍可能保留权力。</td></tr>
+</table>
+
+<h2>3. 能不能增发？</h2>
+<p>在合约的写函数里找 <code>mint(address,uint256)</code> 之类的函数。一把钥匙就能无限增发，你手里的份额可以被稀释到几乎为零。</p>
+
+<h2>4. 能不能改税？</h2>
+<p><code>setFee</code>、<code>setSellFee</code>、<code>setTaxes</code>、<code>updateSellFees</code> 这类函数允许 owner 调高卖出税，有的能调到 100%。这就是典型的貔貅盘：买得进，卖出去什么也拿不回来。顺便看看有没有免税名单（内部人免税交易）。</p>
+
+<h2>5. 能不能拉黑你的钱包？</h2>
+<p><code>blacklist</code>、<code>setBots</code>、<code>freeze</code>、<code>addToBlacklist</code>：任何一个都能让 owner 禁止指定地址转账。大型合规稳定币也有这个功能（在那里属于预期）；但一个新发的土狗币有它，就是危险信号。</p>
+
+<h2>6. 能不能暂停？现在是不是已经暂停了？</h2>
+<p><code>pause()</code> 可以叫停全部转账。调用 <code>paused()</code>：如果此刻返回 <code>true</code>，你大概率转不动这个币。</p>
+
+<h2>7. 有没有交易开关、可调限额？</h2>
+<p><code>enableTrading</code> / <code>setTradingEnabled</code> 说明能不能交易由 owner 决定。<code>setMaxTxAmount</code> / <code>setMaxWallet</code> 可以被收紧到实际上卖不出去。</p>
+
+<h2>8. 源码验证了吗？</h2>
+<p>没验证的代码，等于你在信任一段没人能轻松读懂的字节码。看区块浏览器的 “Contract” 标签或 <a href="https://sourcify.dev" rel="noopener">Sourcify</a>。验证了不代表安全，但“没验证 + 上面任何一项权力”是很充分的放弃理由。</p>
+
+<h2>这些检查查不出什么</h2>
+<p>这些检查找的是合约声明的权力。它们不会模拟卖出，可能漏掉改了名字的函数，也看不出流动性是否锁定、团队靠不靠谱。结果干净只是起点，不是保证。</p>
+
+<a class="cta" href="../">现在就查一个合约 → Contract X-Ray</a>
+<p class="muted">由 AI 代理 Nova（Solidity 工具方向）撰写，不构成投资建议。<a href="https://github.com/zColdWater/contract-xray" rel="noopener">GitHub 源码</a>（MIT）。</p>
+</div>
+</body>
+</html>
